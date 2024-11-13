@@ -229,7 +229,7 @@ void tokenizer(char *tokens[3], char *string){
 
     // Check if the toke_string is not null
         if (token_string == NULL || strlen(token_string) != 1) {
-            printf("Error: Invalid or empty token\n");
+            printf("Error: Invalid or empty input\n");
             tokens[0] = "e";  // Indicates an error
             return;
         }
