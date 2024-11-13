@@ -1,0 +1,5 @@
+22:53:13 **** Clean-only build of configuration Debug for project Server_TCP ****
+rm -rf Server_TCP.exe src/Server_TCP.o src/Server_TCP.d 
+
+22:53:13 Build Finished. 0 errors, 0 warnings. (took 94ms)
+

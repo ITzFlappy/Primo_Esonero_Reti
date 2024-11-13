@@ -1,0 +1,5 @@
+Info: Nothing to build for Server_TCP
+22:53:13 **** Clean-only build of configuration Debug for project Client_TCP ****
+rm -rf Client_TCP.exe src/Client_TCP.o src/Client_TCP.d 
+22:53:13 **** Clean-only build of configuration Debug for project Server_TCP ****
+rm -rf Server_TCP.exe src/Server_TCP.o src/Server_TCP.d 

@@ -1,0 +1,226 @@
+/*
+ ============================================================================
+ Name        : Server_esonero.c
+ Author      : Belisario Cappiello
+ Version     :
+ Copyright   : Your copyright notice
+ Description : Hello World in C, Ansi-style
+ ============================================================================
+ */
+#if defined WIN32
+	#include <winsock2.h>
+#else
+	#define closesocket close
+	#include <sys/socket.h>
+	#include <arpa/inet.h>
+	#include <unistd.h>
+#endif
+
+#include "../../headers/operations.h"
+
+#define NO_ERROR 0
+#define BUFFERSIZE 512
+#define PROTOPORT 60001
+#define SERVER_ADDRESS "127.0.0.1"
+#define QLEN 5
+
+int operation_switcher(char *, char *, char *, char *);
+void tokenizer(char * [4], char *);
+void errorhandler(char *);
+void clearwinsock();
+
+int main(int argc, char *argv[])
+{
+
+	int port;
+	char * start_address_server = "";
+	if (argc > 1){
+		start_address_server = argv[1];
+		port = atoi(argv[2]);
+	}else{
+		port = PROTOPORT;
+		start_address_server = SERVER_ADDRESS;
+		if (port < 0){
+			printf("%d is a bad port number\n", port);
+			return 0;
+		}
+		printf("%s", "This port is available\n");
+	}
+	printf("%s %s:%d\n", "Trying to start server with", start_address_server, port);
+
+	#if defined WIN32
+		WSADATA wsa_data;
+		int result;
+		result = WSAStartup(MAKEWORD(2, 2), &wsa_data);
+		if (result != NO_ERROR)
+		{
+			errorhandler("Start up failed\n");
+			return 0;
+		}
+		printf("Start up done correctly\n");
+	#endif
+
+	// Socket creation
+	int server_socket;
+	server_socket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	if (server_socket < 0)
+	{
+		errorhandler("Socket creation failed\n");
+		clearwinsock();
+		return -1;
+	}
+	printf("%s", "Socket created successfully\n");
+
+	// Creating a struct for the server address
+	struct sockaddr_in server_address;
+	memset(&server_address, 0, sizeof(server_address));
+	server_address.sin_family = AF_INET;
+	server_address.sin_addr.s_addr = inet_addr(start_address_server);
+	server_address.sin_port = htons(port);
+	int server_bind;
+	server_bind = bind(server_socket, (struct sockaddr *)&server_address, sizeof(server_address));
+	if (server_bind < NO_ERROR)
+	{
+		errorhandler("Binding failed\n");
+		closesocket(server_socket);
+		clearwinsock();
+		return -1;
+	}
+	printf("%s", "Binding successfull\n");
+
+	// Making the server listen
+	int listening;
+	listening = listen(server_socket, QLEN-1);
+	if (listening < NO_ERROR)
+	{
+		errorhandler("Listening failed\n");
+		closesocket(server_socket);
+		clearwinsock();
+		return -1;
+	}
+	printf("%s", "Listening successfull\n");
+
+	printf("%s", "Waiting for a client to connect\n");
+	// Accept the connection
+	struct sockaddr_in client_address;
+	int client_socket, client_len;
+	int continue_loop = 1;
+	while (1)
+	{
+		client_len = sizeof(client_address);
+		client_socket = accept(server_socket, (struct sockaddr *)&client_address, &client_len);
+		if (client_socket < NO_ERROR)
+		{
+			errorhandler("Client acceptance failed\n");
+			closesocket(client_socket);
+			clearwinsock();
+			return 0;
+		}
+		printf("%s%s%s%d\n", "Connection established with ", inet_ntoa(client_address.sin_addr), ":", ntohs(client_address.sin_port));
+		char client_data[BUFFERSIZE];
+		continue_loop = 1;
+		do{
+			memset(client_data, 0, BUFFERSIZE);
+			recv(client_socket, client_data, BUFFERSIZE - 1, 0);
+			// Remove the newline char, if there's one
+			int string_len = strlen(client_data);
+			if ((string_len > 0) && (client_data[string_len - 1] == '\n'))
+			{
+				client_data[string_len - 1] = '\0';
+			}
+			printf("\n%s ", "Data received from client: ");
+			printf("%s\n", client_data);
+
+			char * string_tokens[4];
+			tokenizer(string_tokens, client_data);
+			if(strcmp(string_tokens[0], "=") == 0){
+				continue_loop = 0;
+				printf("%s%s\n", "Closed connection with client ", inet_ntoa(client_address.sin_addr));
+			}else{
+				printf("%s\n", "Performing operation... ");
+				char operation_result[BUFFERSIZE];
+				memset(operation_result, 0, BUFFERSIZE);
+				int switcher = operation_switcher(string_tokens[0], string_tokens[1], string_tokens[2], string_tokens[3]);
+				itoa(switcher, operation_result, 10);
+				string_len = strlen(operation_result);
+				Sleep(1000);
+				printf("%s %s \n", "Operation result -> ", operation_result);
+				send(client_socket, operation_result, string_len, 0);
+			}
+		}while(continue_loop);
+	}
+
+	system("PAUSE");
+
+	return 0;
+}
+
+int operation_switcher(char * operator, char * first_operand, char * second_operand, char * token_num){
+
+	int token_number = atoi(token_num);
+	if(token_number < 3){
+		printf("%s", "Parsing error");
+		return -999999999;
+	}
+	int first_number = atoi(first_operand);
+	int second_number = atoi(second_operand);
+	int op_result;
+
+	switch(operator[0]){
+		case '+':
+			op_result = add(first_number, second_number);
+			break;
+		case '-':
+			op_result = sub(first_number, second_number);
+			break;
+		case 'x':
+			op_result = mult(first_number, second_number);
+			break;
+		case '/':
+			if(second_number == 0) {
+				printf("%s", "Cannot divide by zero\n");
+				return -999999999;
+			}
+			op_result = division(first_number, second_number);
+			break;
+	}
+
+	return op_result;
+}
+
+void tokenizer(char * tokens[4], char * string){
+	char * operation = string;
+	short temp = 0;
+	char * token_string;
+	token_string = strtok(operation, " ");
+
+	if(strcmp(token_string, "=") == 0){
+		tokens[0] = "=";
+		tokens[1] = NULL;
+		tokens[2] = NULL;
+		tokens[3] = "3";
+	}else{
+		while (token_string != NULL){
+			tokens[temp] = token_string;
+			temp++;
+			token_string = strtok(NULL, " ");
+		}
+		if(temp == 3){
+			int temp_var = temp;
+			char str_temp_var[BUFFERSIZE];
+			memset(str_temp_var, 0, BUFFERSIZE);
+			itoa(temp_var, str_temp_var, 10);
+			tokens[temp] = str_temp_var;
+		}
+	}
+}
+
+void clearwinsock(){
+	#if defined WIN32
+		WSACleanup();
+	#endif
+}
+
+void errorhandler(char * string){
+	printf("%s", string);
+}
