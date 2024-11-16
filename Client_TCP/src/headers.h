@@ -15,6 +15,8 @@
 	#include <sys/socket.h>
 	#include <arpa/inet.h>
 	#include <unistd.h>
+	#include <pthread.h>
+	void *handle_client(void *arg);
 #endif
 
 #include <stdio.h>
@@ -32,6 +34,8 @@ void errorhandler(char *);
 void tokenizer(char * tokens[3], char *);
 int checkChar(char *);
 int isValidNumber(char *);
+void *handle_client(void *arg);
+void SetColor(unsigned short color);
 
 
 #endif /* HEADERS_H_ */

@@ -10,11 +10,15 @@
 
 #if defined WIN32
     #include <winsock2.h>
+    #define CLOSE_SOCKET closesocket
+    void handle_client(void *arg);
 #else
-    #define closesocket close
+    #define CLOSE_SOCKET close
     #include <sys/socket.h>
     #include <arpa/inet.h>
     #include <unistd.h>
+    #include <pthread.h>
+    void *handle_client(void *arg);
 #endif
 
 #include "generator.h"
@@ -29,6 +33,10 @@ char * type_switcher(char *, char *, char *);
 void tokenizer(char * [3], char *);
 void errorhandler(char *);
 void clearwinsock();
+void SetColor(unsigned short color);
+void ShowOnline(int current_clients);
+
+int current_clients = 0;
 
 int main(int argc, char *argv[])
 {
@@ -104,74 +112,94 @@ int main(int argc, char *argv[])
     }
     printf("%s", "Listening successful\n");
 
-    printf("%s", "Waiting for a client to connect\n");
+    Sleep(5000);
+    system("CLS");
+
+    printf("%s", "Waiting for a client to connect\n\n");
 
     // Loop to accept and handle client connections
     struct sockaddr_in client_address;
     int client_socket, client_len;
-    int continue_loop = 1;
+    int justonce = 1;
 
-    while (1)
-    {
+    ShowOnline(current_clients);
+
+    while (1) {
+    	if (current_clients == QLEN - 1)
+    		justonce = 1;
+    	if (current_clients == QLEN && justonce) {
+    		justonce = 0;
+			printf("Max number of clients connected, refusing new connections.\n");
+			// Non accetta nuove connessioni finché non si libera uno slot
+			Sleep(1000); // Pausa per evitare un sovraccarico della CPU
+			continue;
+		}
+
         client_len = sizeof(client_address);
         client_socket = accept(server_socket, (struct sockaddr *)&client_address, &client_len);
-        if (client_socket < NO_ERROR)
-        {
+        if (client_socket < 0) {
             errorhandler("Client acceptance failed\n");
-            closesocket(client_socket);
-            clearwinsock();
-            return 0;
+            continue;
         }
-        printf("%s%s%s%d%s\n", "*New connection from ", inet_ntoa(client_address.sin_addr), ":", ntohs(client_address.sin_port), "*");
 
-        // Buffer to hold client data
-        char client_data[BUFFERSIZE];
-        continue_loop = 1;
+        // Incrementare il contatore di client connessi
+		current_clients++;
 
-        // Loop to receive data from the client
-        do{
-            memset(client_data, 0, BUFFERSIZE);
-            recv(client_socket, client_data, BUFFERSIZE - 1, 0);
+		if(current_clients < QLEN + 1){
+			SetColor(2);
+			printf("\t*New connection from ");
 
-            // Remove the newline character if present
-            int string_len = strlen(client_data);
-            if ((string_len > 0) && (client_data[string_len - 1] == '\n'))
-            {
-                client_data[string_len - 1] = '\0';
-            }
-            printf("\n%s ", "Data received from client: ");
-            printf("%s\n", client_data);
+			SetColor(1);
+			printf("%s:%d", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
 
-            // Tokenize client input data
-            char * string_tokens[3];
-            tokenizer(string_tokens, client_data);
+			SetColor(2);
+			printf("*\n");
+			SetColor(7);
+		}
 
-            // Check if client requested to quit
-            if(strcmp(string_tokens[0], "q") == 0){
-                continue_loop = 0;
-                printf("%s%s\n", "Closed connection with client ", inet_ntoa(client_address.sin_addr));
+
+		if (current_clients > QLEN) {
+			SetColor(1); // Colore blu
+			printf("%s:%d", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
+			SetColor(7);
+			printf(" tried to connect, ");
+			SetColor(4);
+			printf("connection refused.\n");
+			SetColor(7);
+			closesocket(client_socket);  // Close the rejected connection
+			current_clients--;  // Decrement the counter for rejected clients
+			continue;
+		}
+
+        // Allocazione dinamica del client_socket
+        int *client_socket_ptr = malloc(sizeof(int));
+        if (client_socket_ptr == NULL) {
+            printf("Memory allocation error\n");
+            closesocket(client_socket);
+            continue;
+        }
+        *client_socket_ptr = client_socket;
+
+        #if defined WIN32
+            HANDLE thread_handle = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)handle_client, client_socket_ptr, 0, NULL);
+            if (thread_handle == NULL) {
+                printf("Error creating thread.\n");
+                closesocket(client_socket);
+                free(client_socket_ptr);
             } else {
-                // Generate password based on client's request
-                printf("%s\n", "Generating password... ");
-                char password_result[BUFFERSIZE];
-                memset(password_result, 0, BUFFERSIZE);
-
-                // Use the type_switcher function to determine password type
-                char * switcher = type_switcher(string_tokens[0], string_tokens[1], string_tokens[2]);
-                if (switcher != NULL) {
-                    strcpy(password_result, switcher);
-                    free(switcher);
-                } else {
-                    strcpy(password_result, "Error: Invalid type");
-                }
-
-                // Send generated password back to client
-                string_len = strlen(password_result);
-                Sleep(1000);
-                printf("%s %s \n", "Generated password -> ", password_result);
-                send(client_socket, password_result, string_len, 0);
+                CloseHandle(thread_handle); // Lascia il thread lavorare
             }
-        } while (continue_loop);
+        #else
+            pthread_t thread_id;
+            if (pthread_create(&thread_id, NULL, (void *)handle_client, client_socket_ptr) != 0) {
+                printf("Error creating thread.\n");
+                closesocket(client_socket);
+                free(client_socket_ptr);
+            } else {
+                pthread_detach(thread_id); // Il thread si libera da solo
+            }
+        #endif
+            ShowOnline(current_clients);
     }
 
     system("PAUSE");
@@ -229,7 +257,7 @@ void tokenizer(char *tokens[3], char *string){
 
     // Check if the toke_string is not null
         if (token_string == NULL || strlen(token_string) != 1) {
-            printf("Error: Invalid or empty input\n");
+            printf("Error: Invalid or empty token\n");
             tokens[0] = "e";  // Indicates an error
             return;
         }
@@ -264,3 +292,105 @@ void clearwinsock(){
 void errorhandler(char * string){
     printf("%s", string);
 }
+
+void handle_client(void *arg) {
+    int client_socket = *((int *)arg);
+    free(arg);  // Libera la memoria allocata per il socket
+
+    struct sockaddr_in client_address;
+    int client_len = sizeof(client_address);
+    getpeername(client_socket, (struct sockaddr *)&client_address, &client_len);
+
+    char client_data[BUFFERSIZE];
+    int continue_loop = 1;
+
+    while (continue_loop) {
+        memset(client_data, 0, BUFFERSIZE);
+
+        int bytes_received = recv(client_socket, client_data, BUFFERSIZE - 1, 0);
+        if (bytes_received == 0) {
+            // Messaggio di disconnessione
+        			SetColor(4);
+        			printf("\t*Closed connection with ");
+
+        			SetColor(1);
+        			printf("%s:%d", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
+
+        			SetColor(4);
+        			printf("*\n");
+        			SetColor(7);
+
+        			ShowOnline(current_clients);
+            break;
+        } else if (bytes_received < 0) {
+            printf("The client closed unexpectedly.\n");
+            break;
+        }
+
+        int string_len = strlen(client_data);
+        if ((string_len > 0) && (client_data[string_len - 1] == '\n')) {
+            client_data[string_len - 1] = '\0';
+        }
+
+        printf("\nData received from client ");
+
+        SetColor(1);
+        printf("%s:%d", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
+        SetColor(7);
+
+        printf(" : %s\n", client_data);
+        char *string_tokens[3];
+        tokenizer(string_tokens, client_data);
+
+        if (strcmp(string_tokens[0], "q") == 0) {
+            printf("Client requested to quit.\n");
+            break;
+        } else {
+            printf("Generating password...\n");
+            char password_result[BUFFERSIZE];
+            memset(password_result, 0, BUFFERSIZE);
+
+            char *switcher = type_switcher(string_tokens[0], string_tokens[1], string_tokens[2]);
+            if (switcher != NULL) {
+                strcpy(password_result, switcher);
+                free(switcher);
+            } else {
+                strcpy(password_result, "Error: Invalid type");
+            }
+
+            string_len = strlen(password_result);
+            printf("Password generated -> %s\n\n", password_result);
+            send(client_socket, password_result, string_len, 0);
+        }
+    }
+
+    current_clients--;
+    closesocket(client_socket);
+    //disconnecting message
+    		SetColor(4);
+			printf("\t*Closed connection with ");
+
+			SetColor(1);
+			printf("%s:%d", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
+
+			SetColor(4);
+			printf("*\n");
+			SetColor(7);
+
+			ShowOnline(current_clients);
+}
+
+void SetColor(unsigned short color){
+	HANDLE hCon = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(hCon,color);
+}
+
+void ShowOnline(int current_clients){
+	printf("\t\t\t\tClient currently online: ");
+	SetColor(2);
+	printf("%d", current_clients);
+	SetColor(7);
+	printf("/5\n");
+}
+
+
