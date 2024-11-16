@@ -37,6 +37,7 @@ void SetColor(unsigned short color);
 void ShowOnline(int current_clients);
 
 int current_clients = 0;
+int justonce = 1;
 
 int main(int argc, char *argv[])
 {
@@ -120,13 +121,12 @@ int main(int argc, char *argv[])
     // Loop to accept and handle client connections
     struct sockaddr_in client_address;
     int client_socket, client_len;
-    int justonce = 1;
+
 
     ShowOnline(current_clients);
 
     while (1) {
-    	if (current_clients == QLEN - 1)
-    		justonce = 1;
+
     	if (current_clients == QLEN && justonce) {
     		justonce = 0;
 			printf("Max number of clients connected, refusing new connections.\n");
@@ -321,6 +321,8 @@ void handle_client(void *arg) {
         			SetColor(7);
 
         			ShowOnline(current_clients);
+
+        			justonce = 1;
             break;
         } else if (bytes_received < 0) {
             printf("The client closed unexpectedly.\n");
@@ -378,6 +380,8 @@ void handle_client(void *arg) {
 			SetColor(7);
 
 			ShowOnline(current_clients);
+
+			justonce = 1;
 }
 
 void SetColor(unsigned short color){
