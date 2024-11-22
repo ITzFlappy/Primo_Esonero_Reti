@@ -8,7 +8,10 @@
  Description : Client TCP in C, Ansi-style
  ============================================================================
  */
-#include "headers.h"
+#include "../../headers.h"
+
+int isValidNumber(char *);
+int checkChar(char *);
 
 int main(){
 

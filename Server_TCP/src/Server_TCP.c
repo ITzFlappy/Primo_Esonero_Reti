@@ -7,37 +7,10 @@
  Description : TCP Server in C, ANSI-style
  ============================================================================
  */
-
-#if defined WIN32
-    #include <winsock2.h>
-    #define CLOSE_SOCKET closesocket
-    void handle_client(void *arg);
-#else
-    #define CLOSE_SOCKET close
-    #include <sys/socket.h>
-    #include <arpa/inet.h>
-    #include <unistd.h>
-    #include <pthread.h>
-    void *handle_client(void *arg);
-#endif
-
+#include "../../headers.h"
 #include "generator.h"
 
-#define BUFFERSIZE 512       // Define buffer size for data transfer
-#define PROTOPORT 60001      // Default server port
-#define SERVER_ADDRESS "127.0.0.1" // Default server address
-#define QLEN 5               // Queue length for incoming connections
 
-// Function prototypes
-char * type_switcher(char *, char *, char *);
-void tokenizer(char * [3], char *);
-void errorhandler(char *);
-void clearwinsock();
-void SetColor(unsigned short color);
-void ShowOnline(int current_clients);
-
-int current_clients = 0;
-int justonce = 1;
 
 int main(int argc, char *argv[])
 {
@@ -403,6 +376,52 @@ void ShowOnline(int current_clients){
 	printf("%d", current_clients);
 	SetColor(7);
 	printf("/5\n");
+}
+
+//Initializes the random number generator once
+void initialize_random() {
+    static int initialized = 0;
+    if (!initialized) {
+        srand((unsigned int)time(NULL));
+        initialized = 1;
+    }
+}
+
+//Generates a random string using a specified character set
+char* generate_custom(int length, const char* charset, int charset_size) {
+    initialize_random();
+    char* result = (char*)malloc((length + 1) * sizeof(char));
+    if (result == NULL) {
+        printf("Memory allocation failed\n");
+        return NULL;
+    }
+
+    for (int i = 0; i < length; i++) {
+        result[i] = charset[rand() % charset_size];
+    }
+
+    result[length] = '\0';
+    return result;
+}
+
+// Generates a numeric password
+char* generate_numeric(int length) {
+    return generate_custom(length, "0123456789", 10);
+}
+
+// Generates an alphabetic password
+char* generate_alpha(int length) {
+    return generate_custom(length, "abcdefghijklmnopqrstuvwxyz", 26);
+}
+
+// Generates a mixed alphanumeric password
+char* generate_mixed(int length) {
+    return generate_custom(length, "abcdefghijklmnopqrstuvwxyz0123456789", 36);
+}
+
+// Generates a secure password with special characters
+char* generate_secure(int length) {
+    return generate_custom(length, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}|;:,.<>?", 86);
 }
 
 

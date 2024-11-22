@@ -8,58 +8,22 @@
 #ifndef GENERATOR_H_
 #define GENERATOR_H_
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <Windows.h>
-#include <ctype.h>
 #include <time.h>
 
+#define QLEN 5               // Queue length for incoming connections
 
-//Initializes the random number generator once
-void initialize_random() {
-    static int initialized = 0;
-    if (!initialized) {
-        srand((unsigned int)time(NULL));
-        initialized = 1;
-    }
-}
+char * type_switcher(char *, char *, char *);
+void ShowOnline(int current_clients);
+void handle_client(void *arg);
 
-//Generates a random string using a specified character set
-char* generate_custom(int length, const char* charset, int charset_size) {
-    initialize_random();
-    char* result = (char*)malloc((length + 1) * sizeof(char));
-    if (result == NULL) {
-        printf("Memory allocation failed\n");
-        return NULL;
-    }
+void initialize_random();
+char* generate_custom(int length, const char* charset, int charset_size);
+char* generate_numeric(int length);
+char* generate_alpha(int length);
+char* generate_mixed(int length);
+char* generate_secure(int length);
 
-    for (int i = 0; i < length; i++) {
-        result[i] = charset[rand() % charset_size];
-    }
-
-    result[length] = '\0';
-    return result;
-}
-
-// Generates a numeric password
-char* generate_numeric(int length) {
-    return generate_custom(length, "0123456789", 10);
-}
-
-// Generates an alphabetic password
-char* generate_alpha(int length) {
-    return generate_custom(length, "abcdefghijklmnopqrstuvwxyz", 26);
-}
-
-// Generates a mixed alphanumeric password
-char* generate_mixed(int length) {
-    return generate_custom(length, "abcdefghijklmnopqrstuvwxyz0123456789", 36);
-}
-
-// Generates a secure password with special characters
-char* generate_secure(int length) {
-    return generate_custom(length, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{}|;:,.<>?", 86);
-}
+int current_clients = 0;
+int justonce = 1;
 
 #endif /* GENERATOR_H_ */

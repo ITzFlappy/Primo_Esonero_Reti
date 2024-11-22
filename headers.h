@@ -31,9 +31,6 @@
 void clearwinsock();
 void errorhandler(char *);
 void tokenizer(char * tokens[3], char *);
-int checkChar(char *);
-int isValidNumber(char *);
-void *handle_client(void *arg);
 void SetColor(unsigned short color);
 
 
