@@ -166,9 +166,17 @@ int main(int argc, char *argv[])
 			SetColor(4);
 			printf("connection refused.\n");
 			SetColor(7);
+
+			// Invia un messaggio al client che si sta rifiutando
+			    const char *full_message = "server is full";
+			    send(client_socket, full_message, strlen(full_message), 0);
+
 			closesocket(client_socket);  // Close the rejected connection
 			current_clients--;  // Decrement the counter for rejected clients
 			continue;
+		} else{
+			const char *full_message = "server is ready";
+			send(client_socket, full_message, strlen(full_message), 0);
 		}
 
         // Allocazione dinamica del client_socket

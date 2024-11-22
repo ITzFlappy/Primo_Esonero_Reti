@@ -62,6 +62,40 @@ int main(){
 	char * input_string = malloc(BUFFERSIZE);
 	memset(input_string, 0, BUFFERSIZE);
 
+	// Receive response from server
+	int bytes_received = 0;
+
+	char server_string[BUFFERSIZE];
+	memset(server_string, 0, BUFFERSIZE);
+	bytes_received = recv(client_socket, server_string, BUFFERSIZE - 1, 0);
+
+	// Check if the server responded with "server is full"
+	if (bytes_received > 0) {
+	            server_string[bytes_received] = '\0'; // Assicurati che la stringa sia terminata
+	            if (strcmp(server_string, "server is full") == 0) {
+	            	SetColor(14);
+	            	printf( " ____  _____ ____  _     _____ ____    _  ____    _____ _     _     _    \n"
+							"/ ___\\/  __//  __\\/ \\ |\\/  __//  __\\  / \\/ ___\\  /    // \\ /\\/ \\   / \\   \n"
+							"|    \\|  \\  |  \\/|| | //|  \\  |  \\/|  | ||    \\  |  __\\| | ||| |   | |   \n"
+							"\\___ ||  /_ |    /| \\// |  /_ |    /  | |\\___ |  | |   | \\_/|| |_/\\| |_/\\\n"
+							"\\____/\\____\\|_/\\_\\\\__/  \\____\\\\_/\\_\\  \\_/\\____/  \\_/   \\____/\\____/\\____/\n");
+
+	            	SetColor(7);
+
+	                printf("Try again later, Disconnecting...\n");
+	                closesocket(client_socket);
+	                Sleep(5000); // Aspetta 3 secondi prima di riprovare
+	                return 0;
+	            } else if (strcmp(server_string, "server is ready") == 0){
+	            	// nothing
+	            }
+	        } else if (bytes_received <= 0) {
+	            errorhandler("Retrieve failed or connection closed prematurely\n");
+	            closesocket(client_socket);
+	            clearwinsock();
+	            return -1;
+	        }
+
 		while (1) {
 			memset(input_string, 0, BUFFERSIZE);
 			// Display options for generating different types of passwords
@@ -126,7 +160,7 @@ int main(){
 			int bytes_received = 0;
 			char server_string[BUFFERSIZE];
 			memset(server_string, 0, BUFFERSIZE);
-			printf("Data retrieved from server: ");
+			printf("Password generated: ");
 			bytes_received = recv(client_socket, server_string, BUFFERSIZE - 1, 0);
 			if (bytes_received <= 0) {
 				errorhandler("Retrieve failed or connection closed prematurely\n");
@@ -137,7 +171,7 @@ int main(){
 			printf("%s\n", server_string);
 			Sleep(3000);
 			system("CLS");
-			printf("%s%s\n%s%s\n", "Previous password -> ", input_string, "Result -> ", server_string);
+			printf("%s%s\n%s%s\n", "Previous input -> ", input_string, "Result -> ", server_string);
 		}
 
 	// Close socket and clean up Winsock
@@ -228,4 +262,9 @@ int isValidNumber(char *string) {
     }
 
     return 0;
+}
+
+void SetColor(unsigned short color){
+	HANDLE hCon = GetStdHandle(STD_OUTPUT_HANDLE);
+	SetConsoleTextAttribute(hCon,color);
 }

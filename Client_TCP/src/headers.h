@@ -16,7 +16,6 @@
 	#include <arpa/inet.h>
 	#include <unistd.h>
 	#include <pthread.h>
-	void *handle_client(void *arg);
 #endif
 
 #include <stdio.h>
