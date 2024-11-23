@@ -29,7 +29,10 @@ int main(int argc, char *argv[])
         }
         printf("%s", "This port is available\n");
     }
-    printf("%s %s:%d\n", "Trying to start server with", start_address_server, port);
+    printf("%s ", "Trying to start server with");
+    SetColor(1);
+    printf("%s:%d\n",  start_address_server, port);
+    SetColor(7);
 
     #if defined WIN32
         // Initialize Winsock on Windows
@@ -119,13 +122,13 @@ int main(int argc, char *argv[])
 		current_clients++;
 
 		if(current_clients < QLEN + 1){
-			SetColor(2);
+			SetColor(10);
 			printf("\t*New connection from ");
 
 			SetColor(1);
 			printf("%s:%d", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
 
-			SetColor(2);
+			SetColor(10);
 			printf("*\n");
 			SetColor(7);
 		}
@@ -372,7 +375,7 @@ void SetColor(unsigned short color){
 
 void ShowOnline(int current_clients){
 	printf("\t\t\t\tClient currently online: ");
-	SetColor(2);
+	SetColor(10);
 	printf("%d", current_clients);
 	SetColor(7);
 	printf("/5\n");

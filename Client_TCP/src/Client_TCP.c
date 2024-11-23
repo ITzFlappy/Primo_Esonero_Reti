@@ -12,6 +12,7 @@
 
 int isValidNumber(char *);
 int checkChar(char *);
+void ShowMenu();
 
 int main(){
 
@@ -47,7 +48,11 @@ int main(){
 	server_ad.sin_family = AF_INET;
 	server_ad.sin_addr.s_addr = inet_addr(address_to_connect);
 	server_ad.sin_port = htons(port);
-	printf("%s %s %d\n", "Trying to establish connection with", address_to_connect, port);
+
+	printf("%s ", "Trying to establish connection with");
+	SetColor(1);
+	printf("%s:%d\n",address_to_connect, port);
+	SetColor(7);
 
 	// Establish connection with the server
 	int server_connect;
@@ -76,7 +81,7 @@ int main(){
 	if (bytes_received > 0) {
 	            server_string[bytes_received] = '\0'; // Check the string is terminated
 	            if (strcmp(server_string, "server is full") == 0) {
-	            	SetColor(14);
+	            	SetColor(10);
 	            	printf( " ____  _____ ____  _     _____ ____    _  ____    _____ _     _     _    \n"
 							"/ ___\\/  __//  __\\/ \\ |\\/  __//  __\\  / \\/ ___\\  /    // \\ /\\/ \\   / \\   \n"
 							"|    \\|  \\  |  \\/|| | //|  \\  |  \\/|  | ||    \\  |  __\\| | ||| |   | |   \n"
@@ -87,7 +92,7 @@ int main(){
 
 	                printf("Try again later, Disconnecting...\n");
 	                closesocket(client_socket);
-	                Sleep(5000); // Wait 5 seconds before trying again
+	                Sleep(4000); // Wait 4 seconds before trying again
 	                return 0;
 	            } /*else if (strcmp(server_string, "server is ready") == 0){
 	            	// nothing
@@ -101,17 +106,13 @@ int main(){
 
 		while (1) {
 			memset(input_string, 0, BUFFERSIZE);
+
 			// Display options for generating different types of passwords
-			printf("%s", "The server can generate a random password.\n"
-						 "The options are:\n"
-						 "1. 'n' for numeric password (numbers only)\n"
-						 "2. 'a' for alphabetic password (lowercase letters only)\n"
-						 "3. 'm' for mixed password (lowercase letters and numbers)\n"
-						 "4. 's' for strong password (uppercase, lowercase letters, numbers and symbols)\n");
-			printf("%s\n", "If you want to close the connection, please enter only 'q' character");
-			printf("%s ", "Enter the character associated with the type of password you want to generate\n"
-						  "followed by a space and the desired length (from 6 to 32)\nThe server will send back the result -> ");
+			ShowMenu();
+
+			SetColor(10);
 			fgets(input_string, BUFFERSIZE - 1, stdin); // Get user input with a size limit
+			SetColor(7);
 
 			// Remove newline character at the end of input if it exists
 			int string_len = strlen(input_string);
@@ -171,7 +172,11 @@ int main(){
 				clearwinsock();
 				return -1;
 			}
+
+			SetColor(10);
 			printf("%s\n", server_string);
+			SetColor(7);
+
 			Sleep(3000);
 			system("CLS");
 			printf("%s%s\n%s%s\n", "Previous input -> ", input_string, "Result -> ", server_string);
@@ -265,6 +270,67 @@ int isValidNumber(char *string) {
     }
 
     return 0;
+}
+
+void ShowMenu(){
+    // Save default color
+    unsigned short defaultColor = 7; // White
+    unsigned short greenColor = 10; // Green
+
+    printf("%s", "The server can generate a random password.\nThe options are:\n");
+
+    printf("1. '");
+    SetColor(greenColor);
+    printf("n");
+    SetColor(defaultColor);
+    printf("' for ");
+    SetColor(greenColor);
+    printf("numeric password");
+    SetColor(defaultColor);
+    printf(" (numbers only)\n");
+
+    printf("2. '");
+    SetColor(greenColor);
+    printf("a");
+    SetColor(defaultColor);
+    printf("' for ");
+    SetColor(greenColor);
+    printf("alphabetic password");
+    SetColor(defaultColor);
+    printf(" (lowercase letters only)\n");
+
+    printf("3. '");
+    SetColor(greenColor);
+    printf("m");
+    SetColor(defaultColor);
+    printf("' for ");
+    SetColor(greenColor);
+    printf("mixed password");
+    SetColor(defaultColor);
+    printf(" (lowercase letters and numbers)\n");
+
+    printf("4. '");
+    SetColor(greenColor);
+    printf("s");
+    SetColor(defaultColor);
+    printf("' for ");
+    SetColor(greenColor);
+    printf("strong password");
+    SetColor(defaultColor);
+    printf(" (uppercase, lowercase letters, numbers and symbols)\n");
+
+    printf("If you want to close the connection, please enter only '");
+        SetColor(greenColor);
+        printf("q");
+        SetColor(defaultColor);
+        printf("' character\n");
+
+        printf("Enter the character associated with the type of password you want to generate\n"
+               "followed by a space and the desired length (from ");
+        SetColor(greenColor);
+        printf("6 to 32");
+        SetColor(defaultColor);
+        printf(")\nThe server will send back the result -> ");
 }
 
 void SetColor(unsigned short color){
