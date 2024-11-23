@@ -74,7 +74,7 @@ int main(){
 
 	// Check if the server responded with "server is full"
 	if (bytes_received > 0) {
-	            server_string[bytes_received] = '\0'; // Assicurati che la stringa sia terminata
+	            server_string[bytes_received] = '\0'; // Check the string is terminated
 	            if (strcmp(server_string, "server is full") == 0) {
 	            	SetColor(14);
 	            	printf( " ____  _____ ____  _     _____ ____    _  ____    _____ _     _     _    \n"
@@ -87,11 +87,11 @@ int main(){
 
 	                printf("Try again later, Disconnecting...\n");
 	                closesocket(client_socket);
-	                Sleep(5000); // Aspetta 3 secondi prima di riprovare
+	                Sleep(5000); // Wait 5 seconds before trying again
 	                return 0;
-	            } else if (strcmp(server_string, "server is ready") == 0){
+	            } /*else if (strcmp(server_string, "server is ready") == 0){
 	            	// nothing
-	            }
+	            }*/
 	        } else if (bytes_received <= 0) {
 	            errorhandler("Retrieve failed or connection closed prematurely\n");
 	            closesocket(client_socket);

@@ -103,8 +103,8 @@ int main(int argc, char *argv[])
     	if (current_clients == QLEN && justonce) {
     		justonce = 0;
 			printf("Max number of clients connected, refusing new connections.\n");
-			// Non accetta nuove connessioni finché non si libera uno slot
-			Sleep(1000); // Pausa per evitare un sovraccarico della CPU
+
+			Sleep(1000); // Pause to avoid CPU overload
 			continue;
 		}
 
@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        // Incrementare il contatore di client connessi
+        // Increase the counter of connected clients
 		current_clients++;
 
 		if(current_clients < QLEN + 1){
@@ -132,7 +132,7 @@ int main(int argc, char *argv[])
 
 
 		if (current_clients > QLEN) {
-			SetColor(1); // Colore blu
+			SetColor(1);
 			printf("%s:%d", inet_ntoa(client_address.sin_addr), ntohs(client_address.sin_port));
 			SetColor(7);
 			printf(" tried to connect, ");
@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 			printf("connection refused.\n");
 			SetColor(7);
 
-			// Invia un messaggio al client che si sta rifiutando
+			// Send a message to the client that is refusing
 			    const char *full_message = "server is full";
 			    send(client_socket, full_message, strlen(full_message), 0);
 
@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
 			send(client_socket, full_message, strlen(full_message), 0);
 		}
 
-        // Allocazione dinamica del client_socket
+        // Dynamic client_socket allocation
         int *client_socket_ptr = malloc(sizeof(int));
         if (client_socket_ptr == NULL) {
             printf("Memory allocation error\n");
@@ -168,7 +168,7 @@ int main(int argc, char *argv[])
                 closesocket(client_socket);
                 free(client_socket_ptr);
             } else {
-                CloseHandle(thread_handle); // Lascia il thread lavorare
+                CloseHandle(thread_handle); // Let the thread work
             }
         #else
             pthread_t thread_id;
@@ -177,7 +177,7 @@ int main(int argc, char *argv[])
                 closesocket(client_socket);
                 free(client_socket_ptr);
             } else {
-                pthread_detach(thread_id); // Il thread si libera da solo
+                pthread_detach(thread_id); // The thread frees itself
             }
         #endif
             ShowOnline(current_clients);
@@ -276,7 +276,7 @@ void errorhandler(char * string){
 
 void handle_client(void *arg) {
     int client_socket = *((int *)arg);
-    free(arg);  // Libera la memoria allocata per il socket
+    free(arg);  // Frees the memory allocated for the socket
 
     struct sockaddr_in client_address;
     int client_len = sizeof(client_address);
@@ -290,7 +290,7 @@ void handle_client(void *arg) {
 
         int bytes_received = recv(client_socket, client_data, BUFFERSIZE - 1, 0);
         if (bytes_received == 0) {
-            // Messaggio di disconnessione
+            // Disconnection message
         			SetColor(4);
         			printf("\t*Closed connection with ");
 
@@ -349,7 +349,7 @@ void handle_client(void *arg) {
 
     current_clients--;
     closesocket(client_socket);
-    //disconnecting message
+    // Disconnecting message
     		SetColor(4);
 			printf("\t*Closed connection with ");
 
